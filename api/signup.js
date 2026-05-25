@@ -1,52 +1,47 @@
-const { sql } = require("@vercel/postgres");
-const bcrypt = require("bcryptjs");
+const { sql } = require('@vercel/postgres');
+const bcrypt = require('bcryptjs');
+
 module.exports = async (req, res) => {
-  res.setHeader("Access-Control-Allow-credentials", true);
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET,OPTIONS,PATCH,DELETE,POST,PUT",
-  );
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
-  );
-  if (req.method === "OPTIONS") {
+  // CORS হেডারস
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+  if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
-  // input validation
-  const { full_name, email, password } = req.body;
-  if (!full_name || !email || !password) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
+
+  // ⚡ পরিবর্তন: এবার বডি থেকে email, password এর সাথে name-ও নেওয়া হচ্ছে
+  const { name, email, password } = req.body;
+
   try {
-    // create user sql
+    // টেবিল তৈরি করার সময়ও name কলাম যুক্ত রাখা হলো (ভবিষ্যতের জন্য)
     await sql`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
-        full_name VARCHAR(255) NOT NULL,
+        name VARCHAR(255),
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL
       );
     `;
-    // add column
-    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255) DEFAULT 'No Name';`;
-    // hash password
+
     const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // ⚡ পরিবর্তন: ডেটাবেজে এবার name-ও ইনসার্ট করা হচ্ছে
     const result = await sql`
-      INSERT INTO users (full_name, email, password)
-      VALUES (${full_name},${email}, ${hashedPassword})
-      RETURNING id;
+      INSERT INTO users (name, email, password) 
+      VALUES (${name}, ${email}, ${hashedPassword}) 
+      RETURNING id, name, email;
     `;
-    return res.status(201).json({
-      message: "User registered successfully",
-      user: result.rows[0],
-    });
+    
+    return res.status(201).json({ message: "Registration Successful!", user: result.rows[0] });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: error.message || "Database error" });
   }
 };
