@@ -19,10 +19,9 @@ module.exports = async (req, res) => {
   const { name, email, password } = req.body;
 
   try {
-    // 💥 ১. পুরোনো টেবিলটি প্রথমে জোর করে ডিলিট করা হচ্ছে
-    await sql`DROP TABLE IF EXISTS users;`;
+   
 
-    // 🆕 ২. এবার নতুন করে name কলামসহ টেবিলটি তৈরি করা হচ্ছে
+    
     await sql`
       CREATE TABLE users (
         id SERIAL PRIMARY KEY,
