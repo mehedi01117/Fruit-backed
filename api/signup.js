@@ -26,6 +26,8 @@ module.exports = async (req, res) => {
         password VARCHAR(255) NOT NULL
       );
     `;
+    // add column
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS full_name VARCHAR(255) DEFAULT 'No Name';`;
     // hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     const result = await sql`
