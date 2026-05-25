@@ -16,13 +16,15 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // ⚡ পরিবর্তন: এবার বডি থেকে email, password এর সাথে name-ও নেওয়া হচ্ছে
   const { name, email, password } = req.body;
 
   try {
-    // টেবিল তৈরি করার সময়ও name কলাম যুক্ত রাখা হলো (ভবিষ্যতের জন্য)
+    // 💥 ১. পুরোনো টেবিলটি প্রথমে জোর করে ডিলিট করা হচ্ছে
+    await sql`DROP TABLE IF EXISTS users;`;
+
+    // 🆕 ২. এবার নতুন করে name কলামসহ টেবিলটি তৈরি করা হচ্ছে
     await sql`
-      CREATE TABLE IF NOT EXISTS users (
+      CREATE TABLE users (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255),
         email VARCHAR(255) UNIQUE NOT NULL,
@@ -32,7 +34,7 @@ module.exports = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // ⚡ পরিবর্তন: ডেটাবেজে এবার name-ও ইনসার্ট করা হচ্ছে
+    // ৩. ডেটা ইনসার্ট করা
     const result = await sql`
       INSERT INTO users (name, email, password) 
       VALUES (${name}, ${email}, ${hashedPassword}) 
