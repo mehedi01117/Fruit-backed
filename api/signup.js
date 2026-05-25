@@ -19,21 +19,10 @@ module.exports = async (req, res) => {
   const { name, email, password } = req.body;
 
   try {
-   
-
-    
-    await sql`
-      CREATE TABLE users (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255),
-        email VARCHAR(255) UNIQUE NOT NULL,
-        password VARCHAR(255) NOT NULL
-      );
-    `;
-
+    // 🔒 পাসওয়ার্ড লক করা
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // ৩. ডেটা ইনসার্ট করা
+    // 📝 ডেটা ইনসার্ট করা (টেবিল অলরেডি তৈরি আছে, তাই সরাসরি ইনসার্ট হবে)
     const result = await sql`
       INSERT INTO users (name, email, password) 
       VALUES (${name}, ${email}, ${hashedPassword}) 
