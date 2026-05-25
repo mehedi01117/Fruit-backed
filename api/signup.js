@@ -1,48 +1,48 @@
 const { sql } = require('@vercel/postgres');
 const bcrypt = require('bcryptjs');
-
 module.exports = async (req, res) => {
-  // ⚡ CORS পলিসি হ্যান্ডেল করার জন্য এই হেডারগুলো যোগ করা হলো
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*'); // সব ধরণের ডিভাইস থেকে রিকোয়েস্ট অ্যালাউ করবে
+  res.setHeader('Access-Control-Allow-credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
-
-  // যদি মোবাইল বা ব্রাউজার থেকে প্রি-ফ্লাইট (OPTIONS) রিকোয়েস্ট আসে, তবে সরাসরি ২০০ রেসপন্স পাঠানো
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-
-  // শুধু POST রিকোয়েস্ট অ্যালাউ করা হবে
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
-  const { email, password } = req.body;
-
+  // input validation
+  const { full_name, email, password } = req.body;
+  if(!full_name || !email || !password){
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
   try {
-    // ✨ ট্রিক: টেবিল না থাকলে এই কোডটি নিজে থেকেই টেবিল তৈরি করে নেবে!
+    // create user sql
     await sql`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
+        full_name VARCHAR(255) NOT NULL,
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL
       );
     `;
-
-    // পাসওয়ার্ড লক করা
+    // hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    
-    // ডেটা ইনসার্ট করা
     const result = await sql`
-      INSERT INTO users (email, password) 
-      VALUES (${email}, ${hashedPassword}) 
-      RETURNING id, email;
+      INSERT INTO users (full_name, email, password)
+      VALUES (${full_name},${email}, ${hashedPassword})
+      RETURNING id;
     `;
+    return res.status(201).json({
+      message: 'User registered successfully',
+      user: result.rows[0]
+    });
     
-    return res.status(201).json({ message: "Registration Successful!", user: result.rows[0] });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: error.message || "Database error" });
   }
+  catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+
+
 };
