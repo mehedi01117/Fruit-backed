@@ -22,7 +22,7 @@ module.exports = async (req, res) => {
     // 🔒 পাসওয়ার্ড লক করা
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // 📝 ডেটা ইনসার্ট করা (টেবিল অলরেডি তৈরি আছে, তাই সরাসরি ইনসার্ট হবে)
+    
     const result = await sql`
       INSERT INTO users (name, email, password) 
       VALUES (${name}, ${email}, ${hashedPassword}) 
